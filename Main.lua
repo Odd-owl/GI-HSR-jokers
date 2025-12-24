@@ -261,7 +261,7 @@ SMODS.Joker {
     discovered = true,
     allow_duplicates = false,
 
-    config = { extra = { chips_mod = 20, chips = 0 } },
+    config = { extra = { chips_mod = 25, chips = 0 } },
     loc_vars = function(self, info_queue, card)
         return { vars = { card.ability.extra.chips_mod, card.ability.extra.chips } }
     end,
@@ -749,7 +749,7 @@ SMODS.Joker {
     discovered = true,
     allow_duplicates = false,
 
-    config = { extra = { money = 4, Xmult = 3 } },
+    config = { extra = { money = 3, Xmult = 2.5 } },
     loc_vars = function(self, info_queue, card)
         return { vars = { card.ability.extra.money, card.ability.extra.Xmult } }
     end,
