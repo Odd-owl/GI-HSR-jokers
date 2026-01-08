@@ -99,10 +99,15 @@ SMODS.Joker {
     loc_vars = function(self, info_queue, card)
         return { vars = { card.ability.extra.gain, card.ability.extra.loss } }
     end,
+
     calculate = function(self, card, context)
         if context.ending_shop and not context.blueprint then
             ease_dollars(card.ability.extra.loss * -1)
-            card:juice_up(0.3, 0.4)
+            return {
+                message = "-$1",
+                colour = G.C.MULT,
+                card = card
+            }
         end
     end,
 
@@ -139,15 +144,9 @@ SMODS.Joker {
 
     calculate = function(self, card, context)
         if context.money_changed then
-            -- money_amount = to_big(context.money_changed)
-            -- if to_big(money_amount) < to_big(0) then
             if context.money_changed < 0 then
                 ease_dollars(card.ability.extra.money)
-                return {
-                    message = "$1",
-                    colour = G.C.MONEY,
-                    card = card
-                }
+                card:juice_up(0.3, 0.4)
             end
         end
     end
@@ -324,11 +323,11 @@ SMODS.Joker {
     end
 }
 
---Kazuha
+--Sucrose
 SMODS.Joker {
-    key = 'j_kazuha',
+    key = 'j_sucrose',
     loc_txt = {
-        name = "One with wind and clouds!",
+        name = "Anemo test 6308!",
         text = {
             "If played hand contains only {C:attention}1{}",
             "{C:attention}scoring{} card, all played cards of",
@@ -395,6 +394,42 @@ SMODS.Joker {
                     }
                 end
             end
+        end
+    end
+}
+
+--Hu Tao
+SMODS.Joker {
+    key = 'j_hutao',
+    loc_txt = {
+        name = "Pyre, pyre, pants on fire!",
+        text = {
+            "{X:mult,C:white} X#1# {} Mult when 2",
+            "or less hands remaining"
+        }
+    },
+
+    rarity = 1,
+    atlas = 'Joker',
+    pos = { x = 2, y = 0 },
+    cost = 6,
+    blueprint_compat = true,
+    eternal_compat = true,
+    unlocked = true,
+    discovered = true,
+    allow_duplicates = false,
+
+    config = { extra = { Xmult = 2 } },
+    loc_vars = function(self, info_queue, card)
+        return { vars = { card.ability.extra.Xmult } }
+    end,
+
+    calculate = function(self, card, context)
+        if context.joker_main and G.GAME.current_round.hands_left <= 1 then
+            return {
+                Xmult = card.ability.extra.Xmult,
+                card = card
+            }
         end
     end
 }
@@ -482,7 +517,7 @@ SMODS.ObjectType({
 SMODS.Joker {
     key = 'j_jahoda',
     loc_txt = {
-        name = "(@.@)",
+        name = "Finders keepers!",
         text = {
             "Randomly creates a {C:attention}Suit changing{}",
             "{C:attention}Tarot{} or {C:attention}The lovers{} if played hand",
@@ -521,6 +556,53 @@ SMODS.Joker {
                     return true
                 end)
             }))
+        end
+    end
+}
+
+--Venti
+SMODS.Joker {
+    key = 'j_venti',
+    loc_txt = {
+        name = "Time for takeoff!",
+        text = {
+            "During {C:attention}first hand{} of the round,",
+            "convert all {C:attention}scoring cards{} to",
+            "the suit of the {C:attention}first scoring card{}"
+        }
+    },
+
+    rarity = 3,
+    atlas = 'Joker',
+    pos = { x = 1, y = 1 },
+    cost = 7,
+    blueprint_compat = false,
+    eternal_compat = true,
+    unlocked = true,
+    discovered = true,
+    allow_duplicates = false,
+
+    calculate = function(self, card, context)
+        if context.first_hand_drawn and not context.blueprint then
+            local eval = function() return G.GAME.current_round.hands_played == 0 and not G.RESET_JIGGLES end
+            juice_card_until(card, eval, true)
+        end
+        if context.before and G.GAME.current_round.hands_played == 0 then
+            local suit = context.scoring_hand[1].base.suit
+            for k, v in ipairs(context.scoring_hand) do
+                G.E_MANAGER:add_event(Event({
+                    func = function()
+                        SMODS.change_base(v, suit)
+                        v:juice_up()
+                        return true
+                    end
+                }))
+            end     
+            return {
+                message = 'Swirl!',
+                colour = G.C.GREEN,
+                card = card
+            }
         end
     end
 }
@@ -730,7 +812,7 @@ SMODS.Joker {
 SMODS.Joker {
     key = 'j_durin',
     loc_txt = {
-        name = "It's Durin' time!",
+        name = "A turning point, in fate!",
         text = {
             "{C:money}+$#1#{} if poker hand is a",
             "{C:attention}Three of a kind{} or lower,",
@@ -1406,6 +1488,56 @@ SMODS.Joker {
         end
     end
 }
+
+--Aha
+-- SMODS.Joker {
+--     key = "j_aha",
+--     loc_txt = {
+--         name = "Aha",
+--         text = {
+--             "hahahahahahaha",
+--             "hohohohohohoho",
+--             "hehehehehehehe",
+--             "heh heh heh"
+--         }
+--     },
+
+--     rarity = 4,
+--     atlas = 'Joker',
+--     pos = { x = 6, y = 3 },
+--     cost = 20,
+--     blueprint_compat = true,
+--     eternal_compat = true,
+--     unlocked = true,
+--     discovered = true,
+--     allow_duplicates = false,
+
+--     calculate = function(self, card, context)
+--         if context.setting_blind and not context.blueprint and not context.blind.boss then
+
+--             local destructable_jokers = {}
+--             for i = 1, #G.jokers.cards do
+--                 if G.jokers.cards[i] ~= card and not SMODS.is_eternal(G.jokers.cards[i], card) and not G.jokers.cards[i].getting_sliced then
+--                     destructable_jokers[#destructable_jokers + 1] =
+--                         G.jokers.cards[i]
+--                 end
+--             end
+--             local joker_to_destroy = pseudorandom_element(destructable_jokers, 'vremade_madness')
+
+--             if joker_to_destroy then
+--                 joker_to_destroy.getting_sliced = true
+--                 G.E_MANAGER:add_event(Event({
+--                     func = function()
+--                         (context.blueprint_card or card):juice_up(0.8, 0.8)
+--                         joker_to_destroy:start_dissolve({ G.C.RED }, nil, 1.6)
+--                         return true
+--                     end
+--                 }))
+--             end          
+--         end
+--     end,
+-- }
+
 
 
 --Evernight
