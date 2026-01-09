@@ -3,4 +3,4 @@ I try to keep the main branch relatively stable, but it's not guaranteed to be b
 
 Requires lovely and steammodded, and a legally acquired pc copy of balatro if you want to run it.
 
-If you have any questions, suggestions, or find a bug you can message me on discord (odd_owl722).
+If you have any questions, suggestions, or find a bug you can message me on discord (odd_owl722) or visit the thread in the balatro discord at [text](https://discord.com/channels/1116389027176787968/1443963518016684145)
