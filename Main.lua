@@ -922,7 +922,7 @@ SMODS.Joker {
     discovered = true,
     allow_duplicates = false,
 
-    config = { extra = { display_text = "Still charging ult...", display_text2 = "(surely she gets it soon)", Xmult = 1.2, low_Xmult = 1.2, fake_Xmult = 10 } },
+    config = { extra = { display_text = "Still charging ult...", display_text2 = "(surely she gets it soon)", Xmult = 1.5, low_Xmult = 1.5, fake_Xmult = 10 } },
     loc_vars = function(self, info_queue, card)
         return { vars = { card.ability.extra.display_text, card.ability.extra.display_text2, card.ability.extra.Xmult } }
     end,
@@ -1167,6 +1167,49 @@ SMODS.Joker {
     end
 }
 
+--Aventuine
+SMODS.Joker {
+    key = 'j_Aventurine',
+    loc_txt = {
+        name = "The dice have been cast!",
+        text = {
+            "{C:green}#1# in #2#{} chance to gain",
+            "{C:mult}+#4#{} Mult every hand played",
+            "{C:inactive}(Currently {C:mult}+#3# {C:inactive}Mult)"
+        }
+    },
+
+    rarity = 1,
+    atlas = 'Joker',
+    pos = { x = 7, y = 0 },
+    cost = 6,
+    blueprint_compat = true,
+    eternal_compat = true,
+    unlocked = true,
+    discovered = true,
+    allow_duplicates = false,
+
+    config = { extra = { odds = 7, mult = 0, mult_mod = 10 } },
+    loc_vars = function(self, info_queue, card)
+        return { vars = { '' .. (G.GAME and G.GAME.probabilities.normal or 1), card.ability.extra.odds, card.ability.extra.mult, card.ability.extra.mult_mod } }
+    end,
+
+    calculate = function(self, card, context)
+        if context.before and not context.blueprint then
+            if pseudorandom('aventurine') < G.GAME.probabilities.normal / card.ability.extra.odds then
+                card.ability.extra.mult = card.ability.extra.mult + card.ability.extra.mult_mod
+                card_eval_status_text(card, "extra", nil, nil, nil, { message = localize('k_upgrade_ex') })
+            end
+        end
+
+        if context.joker_main then
+            return {
+                mult = card.ability.extra.mult,
+                card = card
+            }
+        end
+    end
+}
 
 SMODS.Sound({
     key = "TacoBell",
@@ -1490,54 +1533,89 @@ SMODS.Joker {
 }
 
 --Aha
--- SMODS.Joker {
---     key = "j_aha",
---     loc_txt = {
---         name = "Aha",
---         text = {
---             "hahahahahahaha",
---             "hohohohohohoho",
---             "hehehehehehehe",
---             "heh heh heh"
---         }
---     },
+SMODS.Joker {
+    key = "j_aha",
+    loc_txt = {
+        name = "Aha",
+        text = {
+            "When {C:attention}blind{} is selected, {C:attention}destroy{}",
+            "a random {C:attention}non-negative{} Joker and",
+            "create a random {C:dark_edition}Negative{} {C:green}Uncommon{}",
+            "{C:red}Rare{} or {C:legendary,E:1}Legendary{} Joker"
+        }
+    },
 
---     rarity = 4,
---     atlas = 'Joker',
---     pos = { x = 6, y = 3 },
---     cost = 20,
---     blueprint_compat = true,
---     eternal_compat = true,
---     unlocked = true,
---     discovered = true,
---     allow_duplicates = false,
+    rarity = 4,
+    atlas = 'Joker',
+    pos = { x = 6, y = 3 },
+    cost = 20,
+    blueprint_compat = true,
+    eternal_compat = true,
+    unlocked = true,
+    discovered = true,
+    allow_duplicates = false,
 
---     calculate = function(self, card, context)
---         if context.setting_blind and not context.blueprint and not context.blind.boss then
+    calculate = function(self, card, context)
+        if context.setting_blind then
+            local destructable_jokers = {}
+            for i = 1, #G.jokers.cards do
+                if G.jokers.cards[i] ~= card and not SMODS.is_eternal(G.jokers.cards[i], card) and not G.jokers.cards[i].getting_sliced and not (G.jokers.cards[i].edition and G.jokers.cards[i].edition.negative) then
+                    destructable_jokers[#destructable_jokers + 1] =
+                        G.jokers.cards[i]
+                end
+            end
+            local joker_to_destroy = pseudorandom_element(destructable_jokers, 'j_aha')
 
---             local destructable_jokers = {}
---             for i = 1, #G.jokers.cards do
---                 if G.jokers.cards[i] ~= card and not SMODS.is_eternal(G.jokers.cards[i], card) and not G.jokers.cards[i].getting_sliced then
---                     destructable_jokers[#destructable_jokers + 1] =
---                         G.jokers.cards[i]
---                 end
---             end
---             local joker_to_destroy = pseudorandom_element(destructable_jokers, 'vremade_madness')
+            if joker_to_destroy then
+                joker_to_destroy.getting_sliced = true
+                G.E_MANAGER:add_event(Event({
+                    func = function()
+                        (context.blueprint_card or card):juice_up(0.8, 0.8)
+                        joker_to_destroy:start_dissolve({ G.C.RED }, nil, 1.6)
+                        return true
+                    end
+                }))
+            end
 
---             if joker_to_destroy then
---                 joker_to_destroy.getting_sliced = true
---                 G.E_MANAGER:add_event(Event({
---                     func = function()
---                         (context.blueprint_card or card):juice_up(0.8, 0.8)
---                         joker_to_destroy:start_dissolve({ G.C.RED }, nil, 1.6)
---                         return true
---                     end
---                 }))
---             end          
---         end
---     end,
--- }
+            G.E_MANAGER:add_event(Event({
+                func = function()
+                    local random_value = pseudorandom("j_aha")
+                    if (random_value >= 0.98) then
+                        SMODS.add_card {
+                            set = 'Joker',
+                            rarity = 'Legendary',
+                            edition = 'e_negative',
+                            key_append = 'aha'
+                        }
+                    elseif (random_value >= 0.5) then
+                        SMODS.add_card {
+                            set = 'Joker',
+                            rarity = 'Rare',
+                            edition = 'e_negative',
+                            key_append = 'aha'
+                        }
+                    else
+                        SMODS.add_card {
+                            set = 'Joker',
+                            rarity = 'Uncommon',
+                            edition = 'e_negative',
+                            key_append = 'aha'
+                        }
+                    end
+                    return true
+                end
+            }))
+            return {
+                message = "Elated!",
+                colour = G.C.MULT,
+                card = context.blueprint_card or card
+            }
+        end
+    end,
+}
 
+--Aventurine
+--Every hand or discard, have a 1 in 7 chance to gain +7 mult
 
 
 --Evernight
@@ -1545,8 +1623,6 @@ SMODS.Joker {
 --Evey/consumable
 --Sell/use this card to give single-use scoring? idk how it'd work just yet
 
---anemo
---on first hand, convert all cards to the same suit as the first card
 
 --? (someone like ororon of fischl who activates on elemental reactions, Ifa Ororon could be fun)
 --gains stats for every time a card changes suit
@@ -1555,5 +1631,3 @@ SMODS.Joker {
 --Gives more chips/mult depending on how many different poker hands / highets poker hand played this run
 --New CDCDC2F poker hand unlocked??????
 
---Character with frontloaded damage
---Mult on first hand of round? idk maybe a little uninteresting
