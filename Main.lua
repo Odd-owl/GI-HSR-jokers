@@ -104,7 +104,7 @@ SMODS.Joker {
         if context.ending_shop and not context.blueprint then
             ease_dollars(card.ability.extra.loss * -1)
             return {
-                message = "-$1",
+                message = '-$' .. number_format(card.ability.extra.loss),
                 colour = G.C.MULT,
                 card = card
             }
@@ -419,7 +419,7 @@ SMODS.Joker {
     discovered = true,
     allow_duplicates = false,
 
-    config = { extra = { Xmult = 2 } },
+    config = { extra = { Xmult = 1.75 } },
     loc_vars = function(self, info_queue, card)
         return { vars = { card.ability.extra.Xmult } }
     end,
@@ -572,7 +572,7 @@ SMODS.Joker {
         }
     },
 
-    rarity = 3,
+    rarity = 2,
     atlas = 'Joker',
     pos = { x = 1, y = 1 },
     cost = 7,
@@ -613,14 +613,14 @@ SMODS.Joker {
     loc_txt = {
         name = "Goose on the loose!",
         text = {
-            "If {C:attention}poker hand{} contains 1/2/3/4/5",
+            "If {C:attention}poker hand{} contains 2/3/4/5",
             "{C:diamonds}Diamond{} or {C:clubs}Club{} cards, this joker",
-            "gains {C:mult}+#1#{}/{C:mult}+#1#{}/{C:mult}+#2#{}/{C:mult}+#2#{}/{C:mult}+#3#{} Mult",
+            "gains {C:mult}+#1#{}/{C:mult}+#2#{}/{C:mult}+#2#{}/{C:mult}+#3#{} Mult",
             "{C:inactive}[currently {C:mult}+#4#{} {C:inactive}Mult]"
         }
     },
 
-    rarity = 2,
+    rarity = 1,
     atlas = 'Joker',
     pos = { x = 0, y = 1 },
     cost = 5,
@@ -644,7 +644,7 @@ SMODS.Joker {
                 end
             end
 
-            if cardcount == 1 or cardcount == 2 then
+            if cardcount == 2 then
                 card.ability.extra.mult = card.ability.extra.mult + card.ability.extra.extra_mult_1
             elseif cardcount == 3 or cardcount == 4 then
                 card.ability.extra.mult = card.ability.extra.mult + card.ability.extra.extra_mult_2
@@ -652,7 +652,7 @@ SMODS.Joker {
                 card.ability.extra.mult = card.ability.extra.mult + card.ability.extra.extra_mult_3
             end
 
-            if cardcount > 0 then
+            if cardcount > 1 then
                 card_eval_status_text(card, "extra", nil, nil, nil, { message = localize('k_upgrade_ex') })
             end
         end
@@ -1015,8 +1015,8 @@ SMODS.Joker {
     loc_txt = {
         name = "A proper sendoff!",
         text = {
-            "Gains {X:mult,C:white} X#1# {} Mult every ",
-            "time a {C:attention}Stone card{} is scored.",
+            "Gains {X:mult,C:white} X#1# {} Mult for",
+            "every {C:attention}Stone card{} played.",
             "Destroys all played {C:attention}Stone cards{}",
             "{C:inactive}(currently {}{X:mult,C:white} X#2# {} {C:inactive}Mult){}"
         }
@@ -1032,13 +1032,13 @@ SMODS.Joker {
     discovered = true,
     allow_duplicates = false,
 
-    config = { extra = { Xmult_mod = 0.25, Xmult = 1 } },
+    config = { extra = { Xmult_mod = 0.75, Xmult = 1 } },
     loc_vars = function(self, info_queue, card)
         return { vars = { card.ability.extra.Xmult_mod, card.ability.extra.Xmult } }
     end,
 
     calculate = function(self, card, context)
-        if context.individual and context.cardarea == G.play and context.other_card.ability.effect == 'Stone Card' and not context.blueprint then
+        if context.repetition and context.cardarea == G.play and context.other_card.ability.effect == 'Stone Card' and not context.blueprint then
             card.ability.extra.Xmult = card.ability.extra.Xmult + card.ability.extra.Xmult_mod
             card_eval_status_text(card, 'extra', nil, nil, nil, { message = localize('k_upgrade_ex') })
         end
@@ -1376,8 +1376,8 @@ SMODS.Joker {
         text = {
             "When in the first joker slot",
             "during a blind, {C:attention}debuffs{} all other",
-            "jokers and gives {X:mult,C:white} X#2# {} Mult",
-            "per joker debuffed in this way.",
+            "jokers and gives {X:mult,C:white} X#2# {} Mult times",
+            "the current {C:attention}Ante{} per other joker",
             "{C:inactive}(Currently {X:mult,C:white} X#1# {} {C:inactive}Mult){}"
         }
     },
@@ -1392,18 +1392,23 @@ SMODS.Joker {
     discovered = true,
     allow_duplicates = false,
 
-    config = { extra = { Xmult = 1, Xmult_mod = 3, activated = false, in_blind = false } },
+    config = { extra = { Xmult = 1, Xmult_mod = 0.5, activated = false, in_blind = false } },
     loc_vars = function(self, info_queue, card)
         return { vars = { card.ability.extra.Xmult, card.ability.extra.Xmult_mod } }
     end,
 	update = function(self, card, front)
-		if G.STAGE == G.STAGES.RUN and card.ability.extra.in_blind == true then
+		if G.STAGE == G.STAGES.RUN and G.GAME.blind and G.GAME.blind.chips > 0 and card.ability.extra.in_blind then
             if G.jokers.cards[1] == card then
                 if card.ability.extra.activated == false then
                     card.ability.extra.activated = true
-                    card.ability.extra.Xmult = (#G.jokers.cards - 1) * card.ability.extra.Xmult_mod + 1
+                    card.ability.extra.Xmult = (#G.jokers.cards - 1) * card.ability.extra.Xmult_mod * G.GAME.round_resets.ante
+                    if card.ability.extra.Xmult < 1 then
+                        card.ability.extra.Xmult = 1
+                    end
                     card.children.center:set_sprite_pos{ x = 4, y = 3 }
                     card_eval_status_text(card, 'extra', nil, nil, nil, {message = localize('k_disabled_ex'),colour = G.C.FILTER, delay = 0.45})
+                    card:set_debuff(false)
+
                     for i = 2, #G.jokers.cards do
                         G.jokers.cards[i]:set_debuff(true)
                         G.jokers.cards[i]:juice_up()
@@ -1411,37 +1416,43 @@ SMODS.Joker {
                 end
 			else
                 card.ability.extra.activated = false
+                card.children.center:set_sprite_pos{ x = 3, y = 3 }
+                card.ability.extra.Xmult = 1
+            end
+            if G.jokers.cards[1] and G.jokers.cards[1].ability.name ~= "j_GI_j_phainon" then
                 for i = 1, #G.jokers.cards do
                     G.jokers.cards[i]:set_debuff(false)
 				end
-                card.children.center:set_sprite_pos{ x = 3, y = 3 }
-                card.ability.extra.Xmult = 1
             end
 		end
 	end,
 
     calculate = function(self, card, context)
         if context.setting_blind then
-            card.ability.extra.in_blind = true
             if G.jokers.cards[1] == card then
                 card.ability.extra.activated = true
                 for i = 2, #G.jokers.cards do
                     G.jokers.cards[i]:set_debuff(true)
                     G.jokers.cards[i]:juice_up()
                 end
-                card.ability.extra.Xmult = (#G.jokers.cards - 1) * card.ability.extra.Xmult_mod + 1
+                card.ability.extra.Xmult = (#G.jokers.cards - 1) * card.ability.extra.Xmult_mod * G.GAME.round_resets.ante
+                if card.ability.extra.Xmult < 1 then
+                    card.ability.extra.Xmult = 1
+                end
                 card.children.center:set_sprite_pos{ x = 4, y = 3 }
                 card_eval_status_text(card, 'extra', nil, nil, nil, {message = localize('k_disabled_ex'),colour = G.C.FILTER, delay = 0.45})
 			end
         end
 
-
+        if context.ending_shop then
+            card.ability.extra.in_blind = true
+        end
 
         if context.end_of_round and context.cardarea == G.jokers then
-            card.ability.extra.in_blind = false
             for i = 1, #G.jokers.cards do
                 G.jokers.cards[i]:set_debuff(false)
             end
+            card.ability.extra.in_blind = false
             card.ability.extra.activated = false
             card.children.center:set_sprite_pos{ x = 3, y = 3 }
             card.ability.extra.Xmult = 1
