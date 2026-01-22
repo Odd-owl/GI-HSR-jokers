@@ -1368,6 +1368,60 @@ SMODS.Joker {
     end
 }
 
+--Sparxie
+SMODS.Joker {
+    key = 'j_sparxie',
+    loc_txt = {
+        name = "Sparxicle going live!",
+        text = {
+            "When {C:attention}hand{} or {C:attention}discard{} only",
+            "contains {C:attention}one card{}, gain {X:mult,C:white} X#1# {} Mult.",
+            "Resets every Round.",
+            "{C:inactive}(Currently {}{X:mult,C:white} X#2# {} {C:inactive} Mult){}"
+        }
+    },
+
+    rarity = 3,
+    atlas = 'Joker',
+    pos = { x = 7, y = 1 },
+    cost = 6,
+    blueprint_compat = true,
+    eternal_compat = true,
+    unlocked = true,
+    discovered = true,
+    allow_duplicates = false,
+
+    config = { extra = { Xmult_mod = 0.75, Xmult = 1 } },
+    loc_vars = function(self, info_queue, card)
+        return { vars = { card.ability.extra.Xmult_mod, card.ability.extra.Xmult } }
+    end,
+
+    calculate = function (self, card, context)
+
+        if (context.discard or context.before) and #context.full_hand == 1 and not context.blueprint then
+            card.ability.extra.Xmult = card.ability.extra.Xmult + card.ability.extra.Xmult_mod
+            card_eval_status_text(card, 'extra', nil, nil, nil,
+                { message = localize { type = 'variable', key = 'a_xmult', vars = { card.ability.extra.Xmult } } })
+        end
+
+        if context.joker_main and card.ability.extra.Xmult > 1 then
+            return {
+                Xmult = card.ability.extra.Xmult,
+                card = card
+            }
+        end
+
+        if context.end_of_round and not context.blueprint and card.ability.extra.Xmult > 1 then
+            card.ability.extra.Xmult = 1
+            return {
+                message = localize('k_reset'),
+                colour = G.C.RED
+            }
+        end
+    end
+
+}
+
 --Phainon
 SMODS.Joker {
     key = 'j_phainon',
@@ -1624,10 +1678,6 @@ SMODS.Joker {
         end
     end,
 }
-
---Aventurine
---Every hand or discard, have a 1 in 7 chance to gain +7 mult
-
 
 --Evernight
 --Creates an Evey every round
