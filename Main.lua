@@ -48,14 +48,18 @@ SMODS.Joker {
 
     calculate = function(self, card, context)
         if context.before then
-            ease_dollars(to_big(card.ability.extra.cost))
-            card:juice_up(0.3, 0.4)
+            ease_dollars(card.ability.extra.cost)
+            return {
+                message = '-$' .. number_format(card.ability.extra.cost * -1),
+                colour = G.C.MULT,
+                card = card
+            }
         end
 
         if context.money_changed and not context.blueprint then
             card.ability.extra.current_count = card.ability.extra.current_count + math.sqrt(context.money_changed ^ 2)
 
-            while to_big(card.ability.extra.current_count) >= to_big(card.ability.extra.req_change) do
+            while card.ability.extra.current_count >= card.ability.extra.req_change do
                 card.ability.extra.current_count = card.ability.extra.current_count - card.ability.extra.req_change
 
                 card.ability.extra.Xmult = card.ability.extra.Xmult + card.ability.extra.Xmult_inc
@@ -314,7 +318,7 @@ SMODS.Joker {
                 })
             end
         end
-        if context.joker_main and (to_big(card.ability.extra.chips) > to_big(0)) then
+        if context.joker_main and card.ability.extra.chips > 0 then
             return {
                 chips = card.ability.extra.chips,
                 card = card
@@ -657,7 +661,7 @@ SMODS.Joker {
             end
         end
 
-        if context.joker_main and (to_big(card.ability.extra.mult) > to_big(0)) then
+        if context.joker_main and (card.ability.extra.mult > 0) then
             return {
                 mult = card.ability.extra.mult
             }
@@ -837,9 +841,9 @@ SMODS.Joker {
 
     calculate = function(self, card, context)
         if context.before and not next(context.poker_hands["Flush"]) and not next(context.poker_hands["Straight"]) and not next(context.poker_hands["Full House"]) and not next(context.poker_hands["Four of a Kind"]) then
-            ease_dollars(to_big(card.ability.extra.money))
+            ease_dollars(card.ability.extra.money)
             return {
-                message = "$4",
+                message = "$" .. number_format(card.ability.extra.money),
                 colour = G.C.MONEY,
                 card = card
             }
@@ -884,9 +888,9 @@ SMODS.Joker {
     end,
 
     calculate = function(self, card, context)
-        if context.after and G.GAME.current_round.hands_left == 0 and to_big(G.GAME.dollars) >= to_big(card.ability.extra.cost) and to_big(G.GAME.chips) + to_big(hand_chips * mult) < to_big(G.GAME.blind.chips) then
+        if context.after and G.GAME.current_round.hands_left == 0 and G.GAME.dollars >= card.ability.extra.cost and G.GAME.chips + hand_chips * mult < G.GAME.blind.chips then
             ease_hands_played(card.ability.extra.extra_hands)
-            ease_dollars(to_big(card.ability.extra.cost) * to_big(-1))
+            ease_dollars(card.ability.extra.cost * -1)
             card.ability.extra.cost = card.ability.extra.cost * 2
             return {
                 message = '-$' .. number_format(card.ability.extra.cost / 2),
@@ -1371,6 +1375,60 @@ SMODS.Joker {
     end
 }
 
+--Sparxie
+SMODS.Joker {
+    key = 'j_sparxie',
+    loc_txt = {
+        name = "Sparxicle going live!",
+        text = {
+            "When {C:attention}hand{} or {C:attention}discard{} only",
+            "contains {C:attention}one card{}, gain {X:mult,C:white} X#1# {} Mult.",
+            "Resets every Round.",
+            "{C:inactive}(Currently {}{X:mult,C:white} X#2# {} {C:inactive} Mult){}"
+        }
+    },
+
+    rarity = 3,
+    atlas = 'Joker',
+    pos = { x = 7, y = 1 },
+    cost = 6,
+    blueprint_compat = true,
+    eternal_compat = true,
+    unlocked = true,
+    discovered = true,
+    allow_duplicates = false,
+
+    config = { extra = { Xmult_mod = 0.75, Xmult = 1 } },
+    loc_vars = function(self, info_queue, card)
+        return { vars = { card.ability.extra.Xmult_mod, card.ability.extra.Xmult } }
+    end,
+
+    calculate = function (self, card, context)
+
+        if (context.discard or context.before) and #context.full_hand == 1 and not context.blueprint then
+            card.ability.extra.Xmult = card.ability.extra.Xmult + card.ability.extra.Xmult_mod
+            card_eval_status_text(card, 'extra', nil, nil, nil,
+                { message = localize { type = 'variable', key = 'a_xmult', vars = { card.ability.extra.Xmult } } })
+        end
+
+        if context.joker_main and card.ability.extra.Xmult > 1 then
+            return {
+                Xmult = card.ability.extra.Xmult,
+                card = card
+            }
+        end
+
+        if context.end_of_round and not context.blueprint and card.ability.extra.Xmult > 1 then
+            card.ability.extra.Xmult = 1
+            return {
+                message = localize('k_reset'),
+                colour = G.C.RED
+            }
+        end
+    end
+
+}
+
 --Phainon
 SMODS.Joker {
     key = 'j_phainon',
@@ -1627,10 +1685,6 @@ SMODS.Joker {
         end
     end,
 }
-
---Aventurine
---Every hand or discard, have a 1 in 7 chance to gain +7 mult
-
 
 --Evernight
 --Creates an Evey every round
