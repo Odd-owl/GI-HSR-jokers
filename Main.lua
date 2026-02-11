@@ -842,6 +842,12 @@ SMODS.Joker {
 
     calculate = function(self, card, context)
         if context.before and not next(context.poker_hands["Flush"]) and not next(context.poker_hands["Straight"]) and not next(context.poker_hands["Full House"]) and not next(context.poker_hands["Four of a Kind"]) then
+            G.E_MANAGER:add_event(Event({
+                func = function()
+                    card.children.center:set_sprite_pos{ x = 7, y = 3 }
+                    return true
+                end
+            }))
             ease_dollars(card.ability.extra.money)
             return {
                 message = "$" .. number_format(card.ability.extra.money),
@@ -851,6 +857,12 @@ SMODS.Joker {
         end
 
         if context.joker_main and (next(context.poker_hands["Flush"]) or next(context.poker_hands["Straight"]) or next(context.poker_hands["Full House"]) or next(context.poker_hands["Four of a Kind"])) then
+            G.E_MANAGER:add_event(Event({
+                func = function()
+                    card.children.center:set_sprite_pos{ x = 3, y = 1 }
+                    return true
+                end
+            }))
             return {
                 Xmult = card.ability.extra.Xmult,
                 card = card
@@ -1321,7 +1333,7 @@ SMODS.Joker {
     end,
 
     calculate = function(self, card, context)
-        if context.joker_main and pseudorandom('bloodstone') < G.GAME.probabilities.normal / card.ability.extra.odds then
+        if context.joker_main and pseudorandom('mualani') < G.GAME.probabilities.normal / card.ability.extra.odds then
             return {
                 Xmult = card.ability.extra.Xmult,
                 card = card
@@ -1372,16 +1384,109 @@ SMODS.Joker {
     end
 }
 
+--Albedo
+SMODS.Joker {
+    key = 'j_albedo',
+    loc_txt = {
+        name = "Moment of birth!",
+        text = {
+            "After playing a {C:attention}Flush{}{C:inactive}#1#{}, {C:attention}Straight{}{C:inactive}#2#{},",
+            "and {C:attention}Four of a kind{}{C:inactive}#3#{} in one round,",
+            "creates {C:legendary,E:1}The Soul{} and {C:mult}self destructs{}.",
+            "If {C:attention}at least one{} was played, creates",
+            "a {C:tarot}Judgement{} at the end of the round",
+            "{C:inactive}(Must have room){}"
+        }
+    },
+
+    rarity = 3,
+    atlas = 'Joker',
+    pos = { x = 7, y = 2 },
+    cost = 10,
+    blueprint_compat = false,
+    eternal_compat = false,
+    unlocked = true,
+    discovered = true,
+    allow_duplicates = false,
+
+    config = { extra = { first_hand = false, second_hand = false, third_hand = false } },
+    loc_vars = function(self, info_queue, card)
+        return { vars = { (card.ability.extra.first_hand and "[X]" or "[ ]"), (card.ability.extra.second_hand and "[X]" or "[ ]"), (card.ability.extra.third_hand and "[X]" or "[ ]") } }
+    end,
+
+    calculate = function (self, card, context)
+        if context.before then
+            if context.scoring_name == "Flush" then
+                card.ability.extra.first_hand = true
+            end
+            if context.scoring_name == "Straight" then
+                card.ability.extra.second_hand = true
+            end
+            if context.scoring_name == "Four of a Kind" then
+                card.ability.extra.third_hand = true
+            end
+
+            if card.ability.extra.first_hand and card.ability.extra.second_hand and card.ability.extra.third_hand and #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
+                G.GAME.consumeable_buffer = G.GAME.consumeable_buffer + 1
+                G.E_MANAGER:add_event(Event({
+                    func = (function()
+                        G.E_MANAGER:add_event(Event({
+                            func = function()
+                                SMODS.add_card {
+                                    key = "c_soul"
+                                }
+                                G.GAME.consumeable_buffer = 0
+                                card:start_dissolve()
+                                return true
+                            end
+                        }))
+                        card_eval_status_text(card, 'extra', nil, nil, nil,
+                            { message = "Created!", colour =  G.C.SECONDARY_SET.Spectral })
+                        return true
+                    end)
+                }))
+            end
+        end
+
+        if context.end_of_round then
+            if (card.ability.extra.first_hand or card.ability.extra.second_hand or card.ability.extra.third_hand) and #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
+                G.GAME.consumeable_buffer = G.GAME.consumeable_buffer + 1
+                G.E_MANAGER:add_event(Event({
+                    func = (function()
+                        G.E_MANAGER:add_event(Event({
+                            func = function()
+                                SMODS.add_card {
+                                    key = "c_judgement"
+                                }
+                                G.GAME.consumeable_buffer = 0
+                                return true
+                            end
+                        }))
+                        card_eval_status_text(card, 'extra', nil, nil, nil,
+                            { message = "Created!", colour =  G.C.SECONDARY_SET.Spectral })
+                        return true
+                    end)
+                }))
+            end
+            card.ability.extra.first_hand = false
+            card.ability.extra.second_hand = false
+            card.ability.extra.third_hand = false
+        end
+    end
+
+}
+
 --Sparxie
 SMODS.Joker {
     key = 'j_sparxie',
     loc_txt = {
         name = "Sparxicle going live!",
         text = {
-            "When {C:attention}hand{} or {C:attention}discard{} only",
-            "contains {C:attention}one card{}, gain {X:mult,C:white} X#1# {} Mult.",
-            "Resets every Round.",
-            "{C:inactive}(Currently {}{X:mult,C:white} X#2# {} {C:inactive} Mult){}"
+            "When {C:chips}hand{}/{C:mult}discard{} has only {C:attention}one card{},",
+            "gain {X:mult,C:white} X#1# {} Mult for this round.",
+            "{C:green}#4#%{} chance to instead gain {X:mult,C:white} X#2# {} Mult",
+            "and restore the used {C:chips}hand{}/{C:mult}discard{}",
+            "{C:inactive}(Currently {}{X:mult,C:white} X#3# {}{C:inactive} Mult){}"
         }
     },
 
@@ -1395,17 +1500,37 @@ SMODS.Joker {
     discovered = true,
     allow_duplicates = false,
 
-    config = { extra = { Xmult_mod = 0.75, Xmult = 1 } },
+    config = { extra = { Xmult_mod_low = 0.5, Xmult_mod_high = 1, Xmult = 1, odds = 25 } },
     loc_vars = function(self, info_queue, card)
-        return { vars = { card.ability.extra.Xmult_mod, card.ability.extra.Xmult } }
+        return { vars = { card.ability.extra.Xmult_mod_low, card.ability.extra.Xmult_mod_high, card.ability.extra.Xmult, card.ability.extra.odds } }
     end,
 
     calculate = function (self, card, context)
 
         if (context.discard or context.before) and #context.full_hand == 1 and not context.blueprint then
-            card.ability.extra.Xmult = card.ability.extra.Xmult + card.ability.extra.Xmult_mod
-            card_eval_status_text(card, 'extra', nil, nil, nil,
-                { message = localize { type = 'variable', key = 'a_xmult', vars = { card.ability.extra.Xmult } } })
+            if pseudorandom('sparxie') < card.ability.extra.odds / 100 then
+                card.ability.extra.Xmult = card.ability.extra.Xmult + card.ability.extra.Xmult_mod_high
+                card_eval_status_text(card, 'extra', nil, nil, nil,
+                    { message = localize { type = 'variable', key = 'a_xmult', vars = { card.ability.extra.Xmult } } , sound = "GI_TacoBell" })
+                if G.GAME.current_round.sparxie_activated == false then
+                    G.GAME.current_round.sparxie_activated = true
+                    if context.discard then
+                        ease_discard(1)
+                        SMODS.calculate_effect( { message = "+1", colour = G.C.RED }, context.blueprint_card or card)
+                    elseif context.before then
+                        ease_hands_played(1)
+                        SMODS.calculate_effect( { message = "+1", colour = G.C.BLUE }, context.blueprint_card or card)
+                    end
+                end
+            else
+                card.ability.extra.Xmult = card.ability.extra.Xmult + card.ability.extra.Xmult_mod_low
+                card_eval_status_text(card, 'extra', nil, nil, nil,
+                    { message = localize { type = 'variable', key = 'a_xmult', vars = { card.ability.extra.Xmult } } })
+            end
+        end
+
+        if context.press_play or context.pre_discard then
+            G.GAME.current_round.sparxie_activated = false
         end
 
         if context.joker_main and card.ability.extra.Xmult > 1 then
